@@ -2,12 +2,22 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mew 3D Real</title>
+<title>Mew 3D Fix Full</title>
 <style>
 body{margin:0;overflow:hidden}
+#loading{
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+font-size:20px;
+color:white;
+}
 </style>
 </head>
 <body>
+
+<div id="loading">Đang load Mew...</div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.152/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.152/examples/js/loaders/GLTFLoader.js"></script>
@@ -28,10 +38,10 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // ===== LIGHT =====
+scene.add(new THREE.AmbientLight(0xffffff,1));
 const light = new THREE.DirectionalLight(0xffffff,1.5);
 light.position.set(10,20,10);
 scene.add(light);
-scene.add(new THREE.AmbientLight(0xffffff,1));
 
 // ===== GROUND =====
 const ground = new THREE.Mesh(
@@ -41,25 +51,43 @@ const ground = new THREE.Mesh(
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
-// ===== LOAD MEW =====
+// ===== PLAYER =====
 let player;
 const loader = new THREE.GLTFLoader();
 
+// 🔥 LOAD MODEL (CÓ FALLBACK)
 loader.load(
+
+  // 👉 MODEL CỦA BẠN
   "https://raw.githubusercontent.com/truongducphat090207-lang/tro-choi/main/mew.glb",
 
   function(gltf){
-    console.log("Load OK");
     player = gltf.scene;
-    player.scale.set(2,2,2);
-    player.position.set(0,0,0);
+    player.scale.set(5,5,5);
+    player.position.y = 1;
     scene.add(player);
+
+    document.getElementById("loading").style.display="none";
+    console.log("Mew load OK");
   },
 
-  undefined,
+  function(xhr){
+    console.log((xhr.loaded/xhr.total*100)+"%");
+  },
 
   function(error){
-    console.error("Lỗi load model:", error);
+    console.error("Lỗi Mew → chuyển sang model backup");
+
+    // 🔥 FALLBACK (KHÔNG BAO GIỜ TRẮNG)
+    loader.load(
+      "https://threejs.org/examples/models/gltf/RobotExpressive.glb",
+      function(gltf){
+        player = gltf.scene;
+        player.scale.set(2,2,2);
+        scene.add(player);
+        document.getElementById("loading").innerHTML="Mew lỗi → đang dùng robot";
+      }
+    );
   }
 );
 
@@ -79,22 +107,26 @@ function updateCamera(){
 
   camera.position.lerp(new THREE.Vector3(
     player.position.x,
-    player.position.y + 4,
-    player.position.z + 8
+    player.position.y + 5,
+    player.position.z + 10
   ),0.1);
 
   camera.lookAt(player.position);
 }
 
+// ===== RESIZE FIX =====
+window.addEventListener("resize", ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
 // ===== LOOP =====
 function animate(){
   requestAnimationFrame(animate);
-
   updateCamera();
-
   renderer.render(scene,camera);
 }
-
 animate();
 
 </script>
