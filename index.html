@@ -2,11 +2,10 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Full Game</title>
+<title>Side Game</title>
 <style>
 body{margin:0;overflow:hidden;font-family:sans-serif}
 
-/* UI */
 #text{position:fixed;top:10px;left:10px;background:black;color:white;padding:5px}
 #hp{position:fixed;top:40px;left:10px;background:black;color:red;padding:5px}
 #mp{position:fixed;top:70px;left:10px;background:black;color:cyan;padding:5px}
@@ -20,13 +19,12 @@ transform:translateX(-50%);
 display:flex;
 gap:10px;
 }
-
 .skill{background:black;color:white;padding:10px;border:2px solid white}
 </style>
 </head>
 <body>
 
-<div id="text">Start...</div>
+<div id="text">Side Game</div>
 <div id="hp">HP: 100</div>
 <div id="mp">MP: 100</div>
 <div id="fruit">Fruit: None</div>
@@ -42,81 +40,43 @@ gap:10px;
 
 <script>
 
-// ===== BASIC =====
-const text = document.getElementById("text");
-const hpUI = document.getElementById("hp");
-const mpUI = document.getElementById("mp");
-const fruitUI = document.getElementById("fruit");
-
-// ===== SCENE =====
+// ===== SETUP =====
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
 scene.add(new THREE.AmbientLight(0xffffff,1));
 
-// ===== MAP =====
+// ===== GROUND =====
 const ground = new THREE.Mesh(
- new THREE.PlaneGeometry(200,200),
+ new THREE.BoxGeometry(200,1,10),
  new THREE.MeshBasicMaterial({color:0x3cb043})
 );
-ground.rotation.x = -Math.PI/2;
+ground.position.y = -0.5;
 scene.add(ground);
 
-// ===== PLAYER (KHÔNG GLB) =====
-let player = new THREE.Group();
-
-const body = new THREE.Mesh(
- new THREE.CylinderGeometry(0.5,0.5,2),
+// ===== PLAYER =====
+let player = new THREE.Mesh(
+ new THREE.BoxGeometry(1,2,1),
  new THREE.MeshBasicMaterial({color:0xffb6c1})
 );
-body.position.y = 1;
-
-const head = new THREE.Mesh(
- new THREE.SphereGeometry(0.7),
- new THREE.MeshBasicMaterial({color:0xffb6c1})
-);
-head.position.y = 2.2;
-
-player.add(body, head);
+player.position.y = 1;
 scene.add(player);
+
+// ===== PHYSICS =====
+let velocityY = 0;
+let gravity = -0.02;
+let onGround = true;
 
 // ===== STATS =====
 let playerHP = 100;
 let playerMP = 100;
 let currentFruit = "None";
-
-// ===== ENEMY =====
-const enemies = [];
-
-function spawnEnemy(){
- let e = new THREE.Mesh(
-  new THREE.BoxGeometry(1,2,1),
-  new THREE.MeshBasicMaterial({color:0xff0000})
- );
- e.position.set(Math.random()*40-20,1,Math.random()*40-20);
- e.hp = 50;
- scene.add(e);
- enemies.push(e);
-}
-for(let i=0;i<5;i++) spawnEnemy();
-
-// ===== DAMAGE =====
-function damageEnemy(pos, radius, dmg){
- enemies.forEach((e,i)=>{
-  if(e.position.distanceTo(pos)<radius){
-   e.hp -= dmg;
-   if(e.hp<=0){
-    scene.remove(e);
-    enemies.splice(i,1);
-   }
-  }
- });
-}
 
 // ===== NPC =====
 const fruits = ["Flame","Lightning","Ice","Dark","Mew","Mewtwo"];
@@ -124,9 +84,23 @@ const npc = new THREE.Mesh(
  new THREE.BoxGeometry(1,2,1),
  new THREE.MeshBasicMaterial({color:0x0000ff})
 );
-npc.position.set(5,1,0);
+npc.position.set(10,1,0);
 npc.fruit = fruits[Math.floor(Math.random()*fruits.length)];
 scene.add(npc);
+
+// ===== ENEMY =====
+const enemies = [];
+function spawnEnemy(x){
+ let e = new THREE.Mesh(
+  new THREE.BoxGeometry(1,2,1),
+  new THREE.MeshBasicMaterial({color:0xff0000})
+ );
+ e.position.set(x,1,0);
+ e.hp = 50;
+ scene.add(e);
+ enemies.push(e);
+}
+for(let i=0;i<5;i++) spawnEnemy(i*10+20);
 
 // ===== CONTROL =====
 const keys = {};
@@ -137,15 +111,28 @@ window.addEventListener("keyup",e=>keys[e.key]=false);
 window.addEventListener("keydown",e=>{
  if(e.key==="e" && player.position.distanceTo(npc.position)<3){
   currentFruit = npc.fruit;
-  fruitUI.innerHTML="Fruit: "+currentFruit;
+  document.getElementById("fruit").innerHTML="Fruit: "+currentFruit;
  }
 });
+
+// ===== DAMAGE =====
+function damageEnemy(radius,dmg){
+ enemies.forEach((e,i)=>{
+  if(Math.abs(e.position.x-player.position.x)<radius){
+   e.hp -= dmg;
+   if(e.hp<=0){
+    scene.remove(e);
+    enemies.splice(i,1);
+   }
+  }
+ });
+}
 
 // ===== MANA =====
 function useMana(cost){
  if(playerMP>=cost){
   playerMP-=cost;
-  mpUI.innerHTML="MP: "+Math.floor(playerMP);
+  document.getElementById("mp").innerHTML="MP: "+Math.floor(playerMP);
   return true;
  }
  return false;
@@ -155,12 +142,12 @@ function useMana(cost){
 window.addEventListener("keydown",e=>{
 
  if(currentFruit==="Mew" && e.key==="z" && useMana(10)){
-  damageEnemy(player.position,5,20);
+  damageEnemy(5,20);
  }
 
  if(currentFruit==="Mewtwo"){
-  if(e.key==="z" && useMana(10)) damageEnemy(player.position,5,20);
-  if(e.key==="x" && useMana(20)) damageEnemy(player.position,8,40);
+  if(e.key==="z" && useMana(10)) damageEnemy(5,20);
+  if(e.key==="x" && useMana(20)) damageEnemy(8,40);
  }
 
 });
@@ -169,30 +156,42 @@ window.addEventListener("keydown",e=>{
 function animate(){
  requestAnimationFrame(animate);
 
- if(keys["w"]) player.position.z -=0.3;
- if(keys["s"]) player.position.z +=0.3;
- if(keys["a"]) player.position.x -=0.3;
- if(keys["d"]) player.position.x +=0.3;
+ // di chuyển ngang
+ if(keys["a"]) player.position.x -=0.2;
+ if(keys["d"]) player.position.x +=0.2;
 
- camera.position.set(
-  player.position.x,
-  player.position.y + 10,
-  player.position.z + 12
- );
- camera.lookAt(player.position);
+ // nhảy
+ if(keys["w"] && onGround){
+  velocityY = 0.4;
+  onGround = false;
+ }
+
+ // gravity
+ velocityY += gravity;
+ player.position.y += velocityY;
+
+ if(player.position.y <= 1){
+  player.position.y = 1;
+  velocityY = 0;
+  onGround = true;
+ }
+
+ // camera ngang
+ camera.position.set(player.position.x,5,15);
+ camera.lookAt(player.position.x,1,0);
 
  // enemy attack
  enemies.forEach(e=>{
-  if(e.position.distanceTo(player.position)<2){
+  if(Math.abs(e.position.x-player.position.x)<2){
    playerHP -= 0.2;
-   hpUI.innerHTML="HP: "+Math.floor(playerHP);
+   document.getElementById("hp").innerHTML="HP: "+Math.floor(playerHP);
   }
  });
 
  // mana regen
  if(playerMP<100){
   playerMP+=0.1;
-  mpUI.innerHTML="MP: "+Math.floor(playerMP);
+  document.getElementById("mp").innerHTML="MP: "+Math.floor(playerMP);
  }
 
  if(playerHP<=0){
