@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mew Working 100%</title>
+<title>Mew Fixed</title>
 <style>
 body{margin:0;overflow:hidden}
 #debug{
@@ -12,6 +12,7 @@ left:10px;
 background:black;
 color:white;
 padding:5px;
+z-index:100;
 }
 </style>
 </head>
@@ -21,6 +22,8 @@ padding:5px;
 
 <!-- THREE -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.152/build/three.min.js"></script>
+
+<!-- FIX LOADER -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.152/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
@@ -36,43 +39,52 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHei
 camera.position.set(0,5,10);
 
 // ===== RENDER =====
-const renderer = new THREE.WebGLRenderer();
+const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // ===== LIGHT =====
 scene.add(new THREE.AmbientLight(0xffffff,1));
 
-// ===== TEST OBJECT (CHẮC CHẮN HIỆN) =====
+// ===== TEST OBJECT =====
 const cube = new THREE.Mesh(
   new THREE.BoxGeometry(),
   new THREE.MeshBasicMaterial({color:0xff0000})
 );
 scene.add(cube);
 
-// ===== LOAD MEW =====
+// ===== LOAD MEW (FIX) =====
 let player;
+
+// ⚠️ FIX QUAN TRỌNG
 const loader = new THREE.GLTFLoader();
 
+try{
 loader.load(
-  "mew.glb",   // 🔥 dùng file local
+  "./mew.glb",   // đảm bảo cùng thư mục
 
   function(gltf){
     player = gltf.scene;
-    player.scale.set(3,3,3);
-    player.position.y = 1;
+
+    player.scale.set(2,2,2);
+    player.position.set(0,1,0);
+
     scene.add(player);
 
-    debug.innerHTML = "✅ Mew OK";
+    debug.innerHTML = "✅ Mew load OK";
   },
 
   undefined,
 
   function(error){
     debug.innerHTML = "❌ Không load được Mew";
-    console.log(error);
+    console.error(error);
   }
 );
+}catch(e){
+  debug.innerHTML = "❌ Lỗi GLTFLoader";
+  console.error(e);
+}
 
 // ===== LOOP =====
 function animate(){
@@ -84,12 +96,14 @@ function animate(){
 }
 animate();
 
-// ===== FIX MOBILE =====
+// ===== RESIZE =====
 window.addEventListener("resize", ()=>{
   camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+debug.innerHTML = "🚀 JS ĐÃ CHẠY";
 
 </script>
 
