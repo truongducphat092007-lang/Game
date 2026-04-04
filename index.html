@@ -2,25 +2,14 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mew 3D Fix Full</title>
+<title>Game 3D đơn giản</title>
 <style>
 body{margin:0;overflow:hidden}
-#loading{
-position:fixed;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-font-size:20px;
-color:white;
-}
 </style>
 </head>
 <body>
 
-<div id="loading">Đang load Mew...</div>
-
 <script src="https://cdn.jsdelivr.net/npm/three@0.152/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
 
@@ -30,7 +19,7 @@ scene.background = new THREE.Color(0x87ceeb);
 
 // ===== CAMERA =====
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(0,6,12);
+camera.position.set(0,8,15);
 
 // ===== RENDER =====
 const renderer = new THREE.WebGLRenderer({antialias:true});
@@ -38,8 +27,8 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // ===== LIGHT =====
-scene.add(new THREE.AmbientLight(0xffffff,1));
-const light = new THREE.DirectionalLight(0xffffff,1.5);
+scene.add(new THREE.AmbientLight(0xffffff,0.7));
+const light = new THREE.DirectionalLight(0xffffff,1);
 light.position.set(10,20,10);
 scene.add(light);
 
@@ -51,83 +40,89 @@ const ground = new THREE.Mesh(
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
-// ===== PLAYER =====
-let player;
-const loader = new THREE.GLTFLoader();
+// ===== TREE =====
+function createTree(x,z){
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.5,0.5,4),
+    new THREE.MeshStandardMaterial({color:0x8B4513})
+  );
+  trunk.position.set(x,2,z);
 
-// 🔥 LOAD MODEL (CÓ FALLBACK)
-loader.load(
+  const leaves = new THREE.Mesh(
+    new THREE.SphereGeometry(2),
+    new THREE.MeshStandardMaterial({color:0x228B22})
+  );
+  leaves.position.set(x,5,z);
 
-  // 👉 MODEL CỦA BẠN
-  "https://raw.githubusercontent.com/truongducphat090207-lang/tro-choi/main/mew.glb",
+  scene.add(trunk, leaves);
+}
 
-  function(gltf){
-    player = gltf.scene;
-    player.scale.set(5,5,5);
-    player.position.y = 1;
-    scene.add(player);
+// tạo nhiều cây
+for(let i=0;i<15;i++){
+  createTree(Math.random()*100-50, Math.random()*100-50);
+}
 
-    document.getElementById("loading").style.display="none";
-    console.log("Mew load OK");
-  },
-
-  function(xhr){
-    console.log((xhr.loaded/xhr.total*100)+"%");
-  },
-
-  function(error){
-    console.error("Lỗi Mew → chuyển sang model backup");
-
-    // 🔥 FALLBACK (KHÔNG BAO GIỜ TRẮNG)
-    loader.load(
-      "https://threejs.org/examples/models/gltf/RobotExpressive.glb",
-      function(gltf){
-        player = gltf.scene;
-        player.scale.set(2,2,2);
-        scene.add(player);
-        document.getElementById("loading").innerHTML="Mew lỗi → đang dùng robot";
-      }
-    );
-  }
+// ===== HOUSE =====
+const house = new THREE.Mesh(
+  new THREE.BoxGeometry(6,5,6),
+  new THREE.MeshStandardMaterial({color:0xffe4c4})
 );
+house.position.set(-10,2.5,0);
+scene.add(house);
+
+// mái nhà
+const roof = new THREE.Mesh(
+  new THREE.ConeGeometry(5,3,4),
+  new THREE.MeshStandardMaterial({color:0xff0000})
+);
+roof.position.set(-10,6,0);
+roof.rotation.y = Math.PI/4;
+scene.add(roof);
+
+// ===== PLAYER =====
+const player = new THREE.Mesh(
+  new THREE.BoxGeometry(1,2,1),
+  new THREE.MeshStandardMaterial({color:0x0000ff})
+);
+player.position.set(0,1,0);
+scene.add(player);
 
 // ===== CONTROL =====
-window.addEventListener("keydown", e=>{
-  if(!player) return;
+const keys = {};
 
-  if(e.key==="w") player.position.z -=0.5;
-  if(e.key==="s") player.position.z +=0.5;
-  if(e.key==="a") player.position.x -=0.5;
-  if(e.key==="d") player.position.x +=0.5;
-});
+window.addEventListener("keydown", e=> keys[e.key]=true);
+window.addEventListener("keyup", e=> keys[e.key]=false);
 
-// ===== CAMERA FOLLOW =====
-function updateCamera(){
-  if(!player) return;
+// ===== LOOP =====
+function animate(){
+  requestAnimationFrame(animate);
 
+  // di chuyển mượt
+  if(keys["w"]) player.position.z -=0.2;
+  if(keys["s"]) player.position.z +=0.2;
+  if(keys["a"]) player.position.x -=0.2;
+  if(keys["d"]) player.position.x +=0.2;
+
+  // camera follow
   camera.position.lerp(new THREE.Vector3(
     player.position.x,
-    player.position.y + 5,
-    player.position.z + 10
+    player.position.y + 8,
+    player.position.z + 12
   ),0.1);
 
   camera.lookAt(player.position);
+
+  renderer.render(scene,camera);
 }
 
-// ===== RESIZE FIX =====
+animate();
+
+// ===== RESIZE =====
 window.addEventListener("resize", ()=>{
   camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
-
-// ===== LOOP =====
-function animate(){
-  requestAnimationFrame(animate);
-  updateCamera();
-  renderer.render(scene,camera);
-}
-animate();
 
 </script>
 
