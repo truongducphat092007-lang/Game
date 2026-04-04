@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mew Final Fix</title>
+<title>Mew Working 100%</title>
 <style>
 body{margin:0;overflow:hidden}
 #debug{
@@ -17,13 +17,13 @@ padding:5px;
 </head>
 <body>
 
-<div id="debug">Đang khởi động...</div>
+<div id="debug">Đang chạy...</div>
 
-<script type="module">
+<!-- THREE -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.152/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152/examples/js/loaders/GLTFLoader.js"></script>
 
-// IMPORT CHUẨN
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.152/build/three.module.js";
-import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.152/examples/jsm/loaders/GLTFLoader.js";
+<script>
 
 const debug = document.getElementById("debug");
 
@@ -32,18 +32,18 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
 // ===== CAMERA =====
-const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 camera.position.set(0,5,10);
 
 // ===== RENDER =====
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize(innerWidth, innerHeight);
+renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // ===== LIGHT =====
 scene.add(new THREE.AmbientLight(0xffffff,1));
 
-// ===== TEST OBJECT =====
+// ===== TEST OBJECT (CHẮC CHẮN HIỆN) =====
 const cube = new THREE.Mesh(
   new THREE.BoxGeometry(),
   new THREE.MeshBasicMaterial({color:0xff0000})
@@ -52,25 +52,25 @@ scene.add(cube);
 
 // ===== LOAD MEW =====
 let player;
-const loader = new GLTFLoader();
+const loader = new THREE.GLTFLoader();
 
 loader.load(
-  "https://truongducphat092007-lang.github.io/Game/mew.glb",
+  "mew.glb",   // 🔥 dùng file local
 
-  (gltf)=>{
+  function(gltf){
     player = gltf.scene;
     player.scale.set(3,3,3);
     player.position.y = 1;
     scene.add(player);
 
-    debug.innerHTML = "✅ Mew load OK";
+    debug.innerHTML = "✅ Mew OK";
   },
 
   undefined,
 
-  (err)=>{
+  function(error){
     debug.innerHTML = "❌ Không load được Mew";
-    console.log(err);
+    console.log(error);
   }
 );
 
@@ -83,6 +83,13 @@ function animate(){
   renderer.render(scene,camera);
 }
 animate();
+
+// ===== FIX MOBILE =====
+window.addEventListener("resize", ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
 
 </script>
 
