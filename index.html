@@ -2,207 +2,220 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Side Game</title>
+<title>Mew Game</title>
+
 <style>
-body{margin:0;overflow:hidden;font-family:sans-serif}
-
-#text{position:fixed;top:10px;left:10px;background:black;color:white;padding:5px}
-#hp{position:fixed;top:40px;left:10px;background:black;color:red;padding:5px}
-#mp{position:fixed;top:70px;left:10px;background:black;color:cyan;padding:5px}
-#fruit{position:fixed;top:10px;right:10px;background:black;color:white;padding:10px}
-
-#ui{
-position:fixed;
-bottom:10px;
-left:50%;
-transform:translateX(-50%);
-display:flex;
-gap:10px;
+html,body{
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  background:black;
+  touch-action:none;
 }
-.skill{background:black;color:white;padding:10px;border:2px solid white}
+
+/* Canvas full màn hình */
+canvas{
+  display:block;
+}
+
+/* UI */
+#ui{
+  position:absolute;
+  top:10px;
+  left:10px;
+  color:white;
+  font-family:sans-serif;
+  z-index:10;
+}
+
+#fruit{
+  position:absolute;
+  top:10px;
+  right:10px;
+  background:black;
+  color:white;
+  padding:5px;
+}
+
+/* Skill buttons */
+#skills{
+  position:absolute;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+}
+
+.btn{
+  display:inline-block;
+  background:black;
+  color:white;
+  padding:10px 15px;
+  margin:5px;
+  border:2px solid white;
+}
 </style>
+
 </head>
 <body>
 
-<div id="text">Side Game</div>
-<div id="hp">HP: 100</div>
-<div id="mp">MP: 100</div>
-<div id="fruit">Fruit: None</div>
-
 <div id="ui">
-<div class="skill">Z</div>
-<div class="skill">X</div>
-<div class="skill">C</div>
-<div class="skill">V</div>
+  <div>HP: <span id="hp">100</span></div>
+  <div>MP: <span id="mp">100</span></div>
+</div>
+
+<div id="fruit">Trái cây: Không có</div>
+
+<div id="skills">
+  <span class="btn">Z</span>
+  <span class="btn">X</span>
+  <span class="btn">C</span>
+  <span class="btn">V</span>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.152/build/three.min.js"></script>
 
 <script>
 
-// ===== SETUP =====
+// ===== AUTO XOAY NGANG MOBILE =====
+if(window.innerHeight > window.innerWidth){
+  alert("Hãy xoay ngang điện thoại!");
+}
+
+// ===== SCENE =====
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
-const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+// ===== CAMERA =====
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0,10,15);
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(innerWidth, innerHeight);
+// ===== RENDER =====
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// ===== LIGHT =====
+scene.add(new THREE.DirectionalLight(0xffffff,1.5));
 scene.add(new THREE.AmbientLight(0xffffff,1));
 
-// ===== GROUND =====
+// ===== MAP =====
 const ground = new THREE.Mesh(
- new THREE.BoxGeometry(200,1,10),
- new THREE.MeshBasicMaterial({color:0x3cb043})
+  new THREE.PlaneGeometry(200,200),
+  new THREE.MeshStandardMaterial({color:0x3cb043})
 );
-ground.position.y = -0.5;
+ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
-// ===== PLAYER =====
-let player = new THREE.Mesh(
- new THREE.BoxGeometry(1,2,1),
- new THREE.MeshBasicMaterial({color:0xffb6c1})
+// ===== TREE =====
+function createTree(x,z){
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.3,0.3,2),
+    new THREE.MeshStandardMaterial({color:0x8B4513})
+  );
+  trunk.position.set(x,1,z);
+
+  const leaf = new THREE.Mesh(
+    new THREE.SphereGeometry(1.2),
+    new THREE.MeshStandardMaterial({color:0x228B22})
+  );
+  leaf.position.set(x,3,z);
+
+  scene.add(trunk);
+  scene.add(leaf);
+}
+
+// nhiều cây
+for(let i=0;i<10;i++){
+  createTree(
+    Math.random()*40-20,
+    Math.random()*40-20
+  );
+}
+
+// ===== PLAYER (Mew giả lập) =====
+const player = new THREE.Mesh(
+  new THREE.SphereGeometry(1),
+  new THREE.MeshStandardMaterial({color:0xffaadd})
 );
-player.position.y = 1;
 scene.add(player);
 
-// ===== PHYSICS =====
-let velocityY = 0;
-let gravity = -0.02;
-let onGround = true;
-
-// ===== STATS =====
-let playerHP = 100;
-let playerMP = 100;
-let currentFruit = "None";
-
 // ===== NPC =====
-const fruits = ["Flame","Lightning","Ice","Dark","Mew","Mewtwo"];
-const npc = new THREE.Mesh(
- new THREE.BoxGeometry(1,2,1),
- new THREE.MeshBasicMaterial({color:0x0000ff})
-);
-npc.position.set(10,1,0);
-npc.fruit = fruits[Math.floor(Math.random()*fruits.length)];
-scene.add(npc);
-
-// ===== ENEMY =====
-const enemies = [];
-function spawnEnemy(x){
- let e = new THREE.Mesh(
-  new THREE.BoxGeometry(1,2,1),
-  new THREE.MeshBasicMaterial({color:0xff0000})
- );
- e.position.set(x,1,0);
- e.hp = 50;
- scene.add(e);
- enemies.push(e);
+const npcs=[];
+for(let i=0;i<3;i++){
+  const npc = new THREE.Mesh(
+    new THREE.BoxGeometry(1,2,1),
+    new THREE.MeshStandardMaterial({color:0xff0000})
+  );
+  npc.position.set(Math.random()*20-10,1,Math.random()*20-10);
+  scene.add(npc);
+  npcs.push(npc);
 }
-for(let i=0;i<5;i++) spawnEnemy(i*10+20);
+
+// ===== TRÁI ÁC QUỶ =====
+const fruits=[];
+function spawnFruit(){
+  const f = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5),
+    new THREE.MeshStandardMaterial({color:0x8000ff})
+  );
+  f.position.set(Math.random()*20-10,1,Math.random()*20-10);
+  scene.add(f);
+  fruits.push(f);
+}
+setInterval(spawnFruit,5000);
 
 // ===== CONTROL =====
-const keys = {};
-window.addEventListener("keydown",e=>keys[e.key]=true);
-window.addEventListener("keyup",e=>keys[e.key]=false);
-
-// ===== NHẬN TRÁI =====
-window.addEventListener("keydown",e=>{
- if(e.key==="e" && player.position.distanceTo(npc.position)<3){
-  currentFruit = npc.fruit;
-  document.getElementById("fruit").innerHTML="Fruit: "+currentFruit;
- }
+window.addEventListener("keydown", e=>{
+  if(e.key==="w") player.position.z -=0.5;
+  if(e.key==="s") player.position.z +=0.5;
+  if(e.key==="a") player.position.x -=0.5;
+  if(e.key==="d") player.position.x +=0.5;
 });
 
-// ===== DAMAGE =====
-function damageEnemy(radius,dmg){
- enemies.forEach((e,i)=>{
-  if(Math.abs(e.position.x-player.position.x)<radius){
-   e.hp -= dmg;
-   if(e.hp<=0){
-    scene.remove(e);
-    enemies.splice(i,1);
-   }
-  }
- });
+// ===== UPDATE =====
+function update(){
+
+  // NPC đuổi
+  npcs.forEach(npc=>{
+    npc.position.x += (player.position.x - npc.position.x)*0.01;
+    npc.position.z += (player.position.z - npc.position.z)*0.01;
+  });
+
+  // ăn trái
+  fruits.forEach((f,i)=>{
+    if(player.position.distanceTo(f.position) < 1.5){
+      scene.remove(f);
+      fruits.splice(i,1);
+      document.getElementById("fruit").innerText = "Trái cây: Mew Power";
+    }
+  });
+
+  // camera follow
+  camera.position.lerp(new THREE.Vector3(
+    player.position.x,
+    player.position.y+8,
+    player.position.z+12
+  ),0.1);
+
+  camera.lookAt(player.position);
 }
-
-// ===== MANA =====
-function useMana(cost){
- if(playerMP>=cost){
-  playerMP-=cost;
-  document.getElementById("mp").innerHTML="MP: "+Math.floor(playerMP);
-  return true;
- }
- return false;
-}
-
-// ===== SKILL =====
-window.addEventListener("keydown",e=>{
-
- if(currentFruit==="Mew" && e.key==="z" && useMana(10)){
-  damageEnemy(5,20);
- }
-
- if(currentFruit==="Mewtwo"){
-  if(e.key==="z" && useMana(10)) damageEnemy(5,20);
-  if(e.key==="x" && useMana(20)) damageEnemy(8,40);
- }
-
-});
 
 // ===== LOOP =====
 function animate(){
- requestAnimationFrame(animate);
-
- // di chuyển ngang
- if(keys["a"]) player.position.x -=0.2;
- if(keys["d"]) player.position.x +=0.2;
-
- // nhảy
- if(keys["w"] && onGround){
-  velocityY = 0.4;
-  onGround = false;
- }
-
- // gravity
- velocityY += gravity;
- player.position.y += velocityY;
-
- if(player.position.y <= 1){
-  player.position.y = 1;
-  velocityY = 0;
-  onGround = true;
- }
-
- // camera ngang
- camera.position.set(player.position.x,5,15);
- camera.lookAt(player.position.x,1,0);
-
- // enemy attack
- enemies.forEach(e=>{
-  if(Math.abs(e.position.x-player.position.x)<2){
-   playerHP -= 0.2;
-   document.getElementById("hp").innerHTML="HP: "+Math.floor(playerHP);
-  }
- });
-
- // mana regen
- if(playerMP<100){
-  playerMP+=0.1;
-  document.getElementById("mp").innerHTML="MP: "+Math.floor(playerMP);
- }
-
- if(playerHP<=0){
-  alert("YOU DIED");
-  location.reload();
- }
-
- renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+  update();
+  renderer.render(scene,camera);
 }
 animate();
 
+// ===== RESIZE FIX =====
+window.addEventListener("resize",()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
 </script>
+
 </body>
 </html>
