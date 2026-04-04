@@ -2,17 +2,16 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mew Debug</title>
+<title>Mew Fix</title>
 <style>
 body{margin:0;overflow:hidden}
 #debug{
 position:fixed;
 top:10px;
 left:10px;
-color:white;
 background:black;
+color:white;
 padding:5px;
-font-size:14px;
 }
 </style>
 </head>
@@ -20,17 +19,15 @@ font-size:14px;
 
 <div id="debug">Đang khởi động...</div>
 
+<!-- THREE -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.152/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152/examples/js/loaders/GLTFLoader.js"></script>
 
-<script>
+<!-- FIX QUAN TRỌNG -->
+<script type="module">
+
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.152/examples/jsm/loaders/GLTFLoader.js";
 
 const debug = document.getElementById("debug");
-
-// ===== TEST THREE =====
-if(typeof THREE === "undefined"){
-  debug.innerHTML = "❌ LỖI: Không load được THREE";
-}
 
 // ===== SCENE =====
 const scene = new THREE.Scene();
@@ -48,61 +45,32 @@ document.body.appendChild(renderer.domElement);
 // ===== LIGHT =====
 scene.add(new THREE.AmbientLight(0xffffff,1));
 
-// ===== TEST OBJECT (CHỐNG TRẮNG) =====
-const testCube = new THREE.Mesh(
+// ===== TEST OBJECT =====
+const cube = new THREE.Mesh(
   new THREE.BoxGeometry(),
   new THREE.MeshBasicMaterial({color:0xff0000})
 );
-scene.add(testCube);
+scene.add(cube);
 
 // ===== LOAD MEW =====
 let player;
-const loader = new THREE.GLTFLoader();
+const loader = new GLTFLoader();
 
 loader.load(
   "https://truongducphat092007-lang.github.io/Game/mew.glb",
 
-  function(gltf){
+  (gltf)=>{
     player = gltf.scene;
     player.scale.set(3,3,3);
-    player.position.y = 1;
     scene.add(player);
-    console.log("Mew OK");
+    debug.innerHTML = "✅ Mew OK";
   },
 
   undefined,
 
-  function(error){
-    console.log("Lỗi Mew → dùng khối");
-
-    // fallback nếu lỗi
-    player = new THREE.Mesh(
-      new THREE.BoxGeometry(1,2,1),
-      new THREE.MeshBasicMaterial({color:0x0000ff})
-    );
-    player.position.y = 1;
-    scene.add(player);
-  }
-);
-
-loader.load(
-  "https://truongducphat092007-lang.github.io/Game/mew.glb",
-
-  function(gltf){
-    player = gltf.scene;
-    player.scale.set(5,5,5);
-    scene.add(player);
-
-    debug.innerHTML = "✅ Mew load OK";
-  },
-
-  function(xhr){
-    debug.innerHTML = "Đang load: " + Math.round(xhr.loaded/xhr.total*100) + "%";
-  },
-
-  function(error){
+  (err)=>{
     debug.innerHTML = "❌ Lỗi load Mew";
-    console.error(error);
+    console.log(err);
   }
 );
 
@@ -110,7 +78,7 @@ loader.load(
 function animate(){
   requestAnimationFrame(animate);
 
-  testCube.rotation.y += 0.01;
+  cube.rotation.y += 0.01;
 
   renderer.render(scene,camera);
 }
