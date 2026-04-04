@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Game 3D đơn giản</title>
+<title>Mew 3D Real</title>
 <style>
 body{margin:0;overflow:hidden}
 </style>
@@ -10,6 +10,7 @@ body{margin:0;overflow:hidden}
 <body>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.152/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
 
@@ -19,7 +20,7 @@ scene.background = new THREE.Color(0x87ceeb);
 
 // ===== CAMERA =====
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(0,8,15);
+camera.position.set(0,6,12);
 
 // ===== RENDER =====
 const renderer = new THREE.WebGLRenderer({antialias:true});
@@ -27,8 +28,8 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // ===== LIGHT =====
-scene.add(new THREE.AmbientLight(0xffffff,0.7));
-const light = new THREE.DirectionalLight(0xffffff,1);
+scene.add(new THREE.AmbientLight(0xffffff,1));
+const light = new THREE.DirectionalLight(0xffffff,1.5);
 light.position.set(10,20,10);
 scene.add(light);
 
@@ -40,56 +41,40 @@ const ground = new THREE.Mesh(
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
-// ===== TREE =====
-function createTree(x,z){
-  const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.5,0.5,4),
-    new THREE.MeshStandardMaterial({color:0x8B4513})
-  );
-  trunk.position.set(x,2,z);
+// ===== LOAD MEW =====
+let player;
+const loader = new THREE.GLTFLoader();
 
-  const leaves = new THREE.Mesh(
-    new THREE.SphereGeometry(2),
-    new THREE.MeshStandardMaterial({color:0x228B22})
-  );
-  leaves.position.set(x,5,z);
+loader.load(
+  "https://raw.githubusercontent.com/truongducphat090207-lang/tro-choi/main/mew.glb",
 
-  scene.add(trunk, leaves);
-}
+  function(gltf){
+    player = gltf.scene;
 
-// tạo nhiều cây
-for(let i=0;i<15;i++){
-  createTree(Math.random()*100-50, Math.random()*100-50);
-}
+    player.scale.set(5,5,5);
+    player.position.y = 1;
 
-// ===== HOUSE =====
-const house = new THREE.Mesh(
-  new THREE.BoxGeometry(6,5,6),
-  new THREE.MeshStandardMaterial({color:0xffe4c4})
+    scene.add(player);
+  },
+
+  undefined,
+
+  function(error){
+    console.error("Mew lỗi:", error);
+
+    // fallback
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(1,2,1),
+      new THREE.MeshStandardMaterial({color:0xff0000})
+    );
+    box.position.y = 1;
+    scene.add(box);
+    player = box;
+  }
 );
-house.position.set(-10,2.5,0);
-scene.add(house);
-
-// mái nhà
-const roof = new THREE.Mesh(
-  new THREE.ConeGeometry(5,3,4),
-  new THREE.MeshStandardMaterial({color:0xff0000})
-);
-roof.position.set(-10,6,0);
-roof.rotation.y = Math.PI/4;
-scene.add(roof);
-
-// ===== PLAYER =====
-const player = new THREE.Mesh(
-  new THREE.BoxGeometry(1,2,1),
-  new THREE.MeshStandardMaterial({color:0x0000ff})
-);
-player.position.set(0,1,0);
-scene.add(player);
 
 // ===== CONTROL =====
 const keys = {};
-
 window.addEventListener("keydown", e=> keys[e.key]=true);
 window.addEventListener("keyup", e=> keys[e.key]=false);
 
@@ -97,27 +82,26 @@ window.addEventListener("keyup", e=> keys[e.key]=false);
 function animate(){
   requestAnimationFrame(animate);
 
-  // di chuyển mượt
-  if(keys["w"]) player.position.z -=0.2;
-  if(keys["s"]) player.position.z +=0.2;
-  if(keys["a"]) player.position.x -=0.2;
-  if(keys["d"]) player.position.x +=0.2;
+  if(player){
+    if(keys["w"]) player.position.z -=0.2;
+    if(keys["s"]) player.position.z +=0.2;
+    if(keys["a"]) player.position.x -=0.2;
+    if(keys["d"]) player.position.x +=0.2;
 
-  // camera follow
-  camera.position.lerp(new THREE.Vector3(
-    player.position.x,
-    player.position.y + 8,
-    player.position.z + 12
-  ),0.1);
+    camera.position.lerp(new THREE.Vector3(
+      player.position.x,
+      player.position.y + 5,
+      player.position.z + 10
+    ),0.1);
 
-  camera.lookAt(player.position);
+    camera.lookAt(player.position);
+  }
 
   renderer.render(scene,camera);
 }
-
 animate();
 
-// ===== RESIZE =====
+// resize fix
 window.addEventListener("resize", ()=>{
   camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
