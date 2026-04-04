@@ -2,103 +2,76 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mew Game</title>
-
+<title>Game Mew</title>
 <style>
-html,body{
-  margin:0;
-  padding:0;
-  overflow:hidden;
-  background:black;
-  touch-action:none;
-}
+body { margin:0; overflow:hidden; }
 
-/* Canvas full màn hình */
-canvas{
-  display:block;
-}
-
-/* UI */
-#ui{
-  position:absolute;
+#ui {
+  position:fixed;
   top:10px;
   left:10px;
   color:white;
-  font-family:sans-serif;
-  z-index:10;
+  font-weight:bold;
 }
 
-#fruit{
+#joystick {
+  position:fixed;
+  bottom:40px;
+  left:40px;
+  width:120px;
+  height:120px;
+  background:rgba(0,0,0,0.3);
+  border-radius:50%;
+  touch-action:none;
+}
+
+#stick {
   position:absolute;
-  top:10px;
-  right:10px;
-  background:black;
-  color:white;
-  padding:5px;
-}
-
-/* Skill buttons */
-#skills{
-  position:absolute;
-  bottom:20px;
-  left:50%;
-  transform:translateX(-50%);
-}
-
-.btn{
-  display:inline-block;
-  background:black;
-  color:white;
-  padding:10px 15px;
-  margin:5px;
-  border:2px solid white;
+  width:50px;
+  height:50px;
+  background:white;
+  border-radius:50%;
+  left:35px;
+  top:35px;
 }
 </style>
-
 </head>
+
 <body>
 
-<div id="ui">
-  <div>HP: <span id="hp">100</span></div>
-  <div>MP: <span id="mp">100</span></div>
-</div>
+<div id="ui">HP:100 | MP:100</div>
 
-<div id="fruit">Trái cây: Không có</div>
-
-<div id="skills">
-  <span class="btn">Z</span>
-  <span class="btn">X</span>
-  <span class="btn">C</span>
-  <span class="btn">V</span>
+<div id="joystick">
+  <div id="stick"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.152/build/three.min.js"></script>
 
 <script>
 
-// ===== AUTO XOAY NGANG MOBILE =====
-if(window.innerHeight > window.innerWidth){
-  alert("Hãy xoay ngang điện thoại!");
-}
-
 // ===== SCENE =====
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
 // ===== CAMERA =====
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(0,10,15);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+
+// góc xoay
+let angleX = 0; // lên xuống
+let angleY = 0; // trái phải
 
 // ===== RENDER =====
 const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // ===== LIGHT =====
-scene.add(new THREE.DirectionalLight(0xffffff,1.5));
 scene.add(new THREE.AmbientLight(0xffffff,1));
+const light = new THREE.DirectionalLight(0xffffff,1);
+light.position.set(10,20,10);
+scene.add(light);
 
-// ===== MAP =====
+// ===== GROUND =====
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(200,200),
   new THREE.MeshStandardMaterial({color:0x3cb043})
@@ -106,114 +79,140 @@ const ground = new THREE.Mesh(
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
+// ===== PLAYER =====
+const player = new THREE.Mesh(
+  new THREE.SphereGeometry(1,32,32),
+  new THREE.MeshStandardMaterial({color:0xff99cc})
+);
+player.position.y = 1;
+scene.add(player);
+
 // ===== TREE =====
 function createTree(x,z){
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(0.3,0.3,2),
-    new THREE.MeshStandardMaterial({color:0x8B4513})
+    new THREE.MeshStandardMaterial({color:0x8b4513})
   );
   trunk.position.set(x,1,z);
 
   const leaf = new THREE.Mesh(
-    new THREE.SphereGeometry(1.2),
+    new THREE.SphereGeometry(1),
     new THREE.MeshStandardMaterial({color:0x228B22})
   );
-  leaf.position.set(x,3,z);
+  leaf.position.set(x,2.5,z);
 
-  scene.add(trunk);
-  scene.add(leaf);
+  scene.add(trunk,leaf);
 }
+createTree(5,5);
+createTree(-5,5);
+createTree(0,-5);
 
-// nhiều cây
-for(let i=0;i<10;i++){
-  createTree(
-    Math.random()*40-20,
-    Math.random()*40-20
-  );
-}
+// ===== JOYSTICK =====
+let moveX = 0;
+let moveZ = 0;
 
-// ===== PLAYER (Mew giả lập) =====
-const player = new THREE.Mesh(
-  new THREE.SphereGeometry(1),
-  new THREE.MeshStandardMaterial({color:0xffaadd})
-);
-scene.add(player);
+const joystick = document.getElementById("joystick");
+const stick = document.getElementById("stick");
 
-// ===== NPC =====
-const npcs=[];
-for(let i=0;i<3;i++){
-  const npc = new THREE.Mesh(
-    new THREE.BoxGeometry(1,2,1),
-    new THREE.MeshStandardMaterial({color:0xff0000})
-  );
-  npc.position.set(Math.random()*20-10,1,Math.random()*20-10);
-  scene.add(npc);
-  npcs.push(npc);
-}
+let dragging = false;
 
-// ===== TRÁI ÁC QUỶ =====
-const fruits=[];
-function spawnFruit(){
-  const f = new THREE.Mesh(
-    new THREE.SphereGeometry(0.5),
-    new THREE.MeshStandardMaterial({color:0x8000ff})
-  );
-  f.position.set(Math.random()*20-10,1,Math.random()*20-10);
-  scene.add(f);
-  fruits.push(f);
-}
-setInterval(spawnFruit,5000);
+joystick.addEventListener("touchstart", ()=> dragging = true);
 
-// ===== CONTROL =====
-window.addEventListener("keydown", e=>{
-  if(e.key==="w") player.position.z -=0.5;
-  if(e.key==="s") player.position.z +=0.5;
-  if(e.key==="a") player.position.x -=0.5;
-  if(e.key==="d") player.position.x +=0.5;
+joystick.addEventListener("touchmove", e=>{
+  if(!dragging) return;
+
+  const touch = e.touches[0];
+  const rect = joystick.getBoundingClientRect();
+
+  let x = touch.clientX - rect.left - 60;
+  let y = touch.clientY - rect.top - 60;
+
+  const dist = Math.sqrt(x*x + y*y);
+  const max = 40;
+
+  if(dist > max){
+    x = x/dist * max;
+    y = y/dist * max;
+  }
+
+  stick.style.left = (x+60-25)+"px";
+  stick.style.top = (y+60-25)+"px";
+
+  moveX = x / max;
+  moveZ = y / max;
 });
 
-// ===== UPDATE =====
-function update(){
+joystick.addEventListener("touchend", ()=>{
+  dragging = false;
+  stick.style.left = "35px";
+  stick.style.top = "35px";
+  moveX = 0;
+  moveZ = 0;
+});
 
-  // NPC đuổi
-  npcs.forEach(npc=>{
-    npc.position.x += (player.position.x - npc.position.x)*0.01;
-    npc.position.z += (player.position.z - npc.position.z)*0.01;
-  });
+// ===== XOAY CAMERA (VUỐT MÀN HÌNH) =====
+let isLook = false;
+let lastX = 0;
+let lastY = 0;
 
-  // ăn trái
-  fruits.forEach((f,i)=>{
-    if(player.position.distanceTo(f.position) < 1.5){
-      scene.remove(f);
-      fruits.splice(i,1);
-      document.getElementById("fruit").innerText = "Trái cây: Mew Power";
-    }
-  });
+window.addEventListener("touchstart", e=>{
+  // nếu chạm bên phải màn hình thì xoay
+  if(e.touches[0].clientX > window.innerWidth / 2){
+    isLook = true;
+    lastX = e.touches[0].clientX;
+    lastY = e.touches[0].clientY;
+  }
+});
 
-  // camera follow
-  camera.position.lerp(new THREE.Vector3(
-    player.position.x,
-    player.position.y+8,
-    player.position.z+12
-  ),0.1);
+window.addEventListener("touchmove", e=>{
+  if(!isLook) return;
 
-  camera.lookAt(player.position);
-}
+  const touch = e.touches[0];
+
+  let dx = touch.clientX - lastX;
+  let dy = touch.clientY - lastY;
+
+  angleY -= dx * 0.005;
+  angleX -= dy * 0.005;
+
+  // giới hạn nhìn lên xuống
+  angleX = Math.max(-1.2, Math.min(1.2, angleX));
+
+  lastX = touch.clientX;
+  lastY = touch.clientY;
+});
+
+window.addEventListener("touchend", ()=>{
+  isLook = false;
+});
 
 // ===== LOOP =====
 function animate(){
   requestAnimationFrame(animate);
-  update();
+
+  // di chuyển theo hướng camera
+  const speed = 0.1;
+
+  player.position.x += Math.sin(angleY) * moveZ * speed;
+  player.position.z += Math.cos(angleY) * moveZ * speed;
+
+  player.position.x += Math.sin(angleY + Math.PI/2) * moveX * speed;
+  player.position.z += Math.cos(angleY + Math.PI/2) * moveX * speed;
+
+  // camera follow xoay
+  const distance = 10;
+
+  const camX = player.position.x + Math.sin(angleY) * distance * Math.cos(angleX);
+  const camZ = player.position.z + Math.cos(angleY) * distance * Math.cos(angleX);
+  const camY = player.position.y + 5 + Math.sin(angleX) * 5;
+
+  camera.position.set(camX, camY, camZ);
+  camera.lookAt(player.position);
+
   renderer.render(scene,camera);
 }
-animate();
 
-// ===== RESIZE FIX =====
-window.addEventListener("resize",()=>{
-  camera.aspect = window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+animate();
 
 </script>
 
