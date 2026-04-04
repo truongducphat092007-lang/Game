@@ -64,6 +64,32 @@ loader.load(
 
   function(gltf){
     player = gltf.scene;
+    player.scale.set(3,3,3);
+    player.position.y = 1;
+    scene.add(player);
+    console.log("Mew OK");
+  },
+
+  undefined,
+
+  function(error){
+    console.log("Lỗi Mew → dùng khối");
+
+    // fallback nếu lỗi
+    player = new THREE.Mesh(
+      new THREE.BoxGeometry(1,2,1),
+      new THREE.MeshBasicMaterial({color:0x0000ff})
+    );
+    player.position.y = 1;
+    scene.add(player);
+  }
+);
+
+loader.load(
+  "https://truongducphat092007-lang.github.io/Game/mew.glb",
+
+  function(gltf){
+    player = gltf.scene;
     player.scale.set(5,5,5);
     scene.add(player);
 
