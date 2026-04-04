@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mew 3D Game</title>
+<title>Anime 3D Game</title>
 
 <style>
 body{margin:0;overflow:hidden;background:black}
@@ -43,8 +43,7 @@ scene.background = new THREE.Color(0x87ceeb);
 
 // ===== CAMERA =====
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
-let angleX = 0;
-let angleY = 0;
+let angleX=0, angleY=0;
 
 // ===== RENDER =====
 const renderer = new THREE.WebGLRenderer({antialias:true});
@@ -110,113 +109,126 @@ createTree(-5,5);
 createTree(0,-5);
 createHouse(0,10);
 
-// ===== PLAYER (Mew thon) =====
+// ===== PLAYER ANIME =====
 const player = new THREE.Group();
 
-const body = new THREE.Mesh(
- new THREE.SphereGeometry(0.8,32,32),
- new THREE.MeshStandardMaterial({color:0xff99cc})
-);
-body.position.y = 0.9;
-
+// head
 const head = new THREE.Mesh(
  new THREE.SphereGeometry(0.5,32,32),
- new THREE.MeshStandardMaterial({color:0xff99cc})
+ new THREE.MeshStandardMaterial({color:0xffe0bd})
 );
-head.position.y = 1.8;
+head.position.y = 2;
 
-const armL = new THREE.Mesh(
- new THREE.CylinderGeometry(0.1,0.1,0.7),
- new THREE.MeshStandardMaterial({color:0xff99cc})
+// eyes
+const eyeL = new THREE.Mesh(
+ new THREE.SphereGeometry(0.05),
+ new THREE.MeshStandardMaterial({color:0x000000})
 );
-armL.position.set(-0.9,1.1,0);
-armL.rotation.z = Math.PI/4;
+eyeL.position.set(-0.15,2,0.45);
+
+const eyeR = eyeL.clone();
+eyeR.position.x = 0.15;
+
+// hair
+const hair = new THREE.Mesh(
+ new THREE.BoxGeometry(1,1.2,0.8),
+ new THREE.MeshStandardMaterial({color:0xffcc99})
+);
+hair.position.set(0,2,-0.1);
+
+// body
+const body = new THREE.Mesh(
+ new THREE.BoxGeometry(1,1.2,0.6),
+ new THREE.MeshStandardMaterial({color:0xffffff})
+);
+body.position.y = 1;
+
+// skirt
+const skirt = new THREE.Mesh(
+ new THREE.ConeGeometry(0.8,0.8,4),
+ new THREE.MeshStandardMaterial({color:0x222244})
+);
+skirt.position.y = 0.4;
+skirt.rotation.y = Math.PI/4;
+
+// arms
+const armL = new THREE.Mesh(
+ new THREE.CylinderGeometry(0.1,0.1,1),
+ new THREE.MeshStandardMaterial({color:0xffe0bd})
+);
+armL.position.set(-0.8,1.2,0);
+armL.rotation.z = Math.PI/6;
 
 const armR = armL.clone();
-armR.position.x = 0.9;
-armR.rotation.z = -Math.PI/4;
+armR.position.x = 0.8;
+armR.rotation.z = -Math.PI/6;
 
+// legs
 const legL = new THREE.Mesh(
- new THREE.CylinderGeometry(0.12,0.12,0.6),
- new THREE.MeshStandardMaterial({color:0xff99cc})
+ new THREE.CylinderGeometry(0.12,0.12,1),
+ new THREE.MeshStandardMaterial({color:0x000000})
 );
-legL.position.set(-0.25,0.3,0);
+legL.position.set(-0.3,0,0);
 
 const legR = legL.clone();
-legR.position.x = 0.25;
+legR.position.x = 0.3;
 
-const tail = new THREE.Mesh(
- new THREE.CylinderGeometry(0.1,0.1,3),
- new THREE.MeshStandardMaterial({color:0xff99cc})
-);
-tail.position.set(0,1,-1.5);
-tail.rotation.x = Math.PI/4;
-
-player.add(body,head,armL,armR,legL,legR,tail);
+player.add(head,eyeL,eyeR,hair,body,skirt,armL,armR,legL,legR);
 scene.add(player);
 
 // ===== JOYSTICK =====
-let moveX = 0;
-let moveZ = 0;
+let moveX=0, moveZ=0;
+const joystick=document.getElementById("joystick");
+const stick=document.getElementById("stick");
+let dragging=false;
 
-const joystick = document.getElementById("joystick");
-const stick = document.getElementById("stick");
+joystick.addEventListener("touchstart",()=>dragging=true);
 
-let dragging = false;
-
-joystick.addEventListener("touchstart", ()=> dragging=true);
-
-joystick.addEventListener("touchmove", e=>{
+joystick.addEventListener("touchmove",e=>{
  if(!dragging) return;
 
- const touch = e.touches[0];
- const rect = joystick.getBoundingClientRect();
+ const t=e.touches[0];
+ const r=joystick.getBoundingClientRect();
 
- let x = touch.clientX - rect.left - 60;
- let y = touch.clientY - rect.top - 60;
+ let x=t.clientX-r.left-60;
+ let y=t.clientY-r.top-60;
 
- const dist = Math.sqrt(x*x+y*y);
- const max = 40;
+ let d=Math.sqrt(x*x+y*y);
+ if(d>40){ x=x/d*40; y=y/d*40; }
 
- if(dist>max){
-  x = x/dist*max;
-  y = y/dist*max;
- }
+ stick.style.left=(x+35)+"px";
+ stick.style.top=(y+35)+"px";
 
- stick.style.left=(x+60-25)+"px";
- stick.style.top=(y+60-25)+"px";
-
- moveX=x/max;
- moveZ=y/max;
+ moveX=x/40;
+ moveZ=y/40;
 });
 
-joystick.addEventListener("touchend", ()=>{
+joystick.addEventListener("touchend",()=>{
  dragging=false;
- moveX=0;
- moveZ=0;
+ moveX=0; moveZ=0;
  stick.style.left="35px";
  stick.style.top="35px";
 });
 
-// ===== CAMERA LOOK =====
-let isLook=false,lastX=0,lastY=0;
+// ===== LOOK =====
+let look=false,lastX=0,lastY=0;
 
-window.addEventListener("touchstart", e=>{
+window.addEventListener("touchstart",e=>{
  if(e.touches[0].clientX>innerWidth/2){
-  isLook=true;
+  look=true;
   lastX=e.touches[0].clientX;
   lastY=e.touches[0].clientY;
  }
 });
 
-window.addEventListener("touchmove", e=>{
- if(!isLook) return;
+window.addEventListener("touchmove",e=>{
+ if(!look) return;
 
  let dx=e.touches[0].clientX-lastX;
  let dy=e.touches[0].clientY-lastY;
 
- angleY -= dx*0.005;
- angleX += dy*0.005;
+ angleY-=dx*0.005;
+ angleX+=dy*0.005;
 
  angleX=Math.max(-1.2,Math.min(1.2,angleX));
 
@@ -224,9 +236,9 @@ window.addEventListener("touchmove", e=>{
  lastY=e.touches[0].clientY;
 });
 
-window.addEventListener("touchend", ()=> isLook=false);
+window.addEventListener("touchend",()=>look=false);
 
-// ===== COLLISION CHECK =====
+// ===== COLLISION =====
 function checkCollision(x,z){
  for(let o of obstacles){
   let dx=x-o.position.x;
@@ -236,58 +248,54 @@ function checkCollision(x,z){
  return false;
 }
 
-// ===== MOVEMENT =====
-let velocityX=0,velocityZ=0;
+// ===== MOVE =====
+let vx=0,vz=0;
 
-// ===== LOOP =====
 function animate(){
  requestAnimationFrame(animate);
 
- const accel=0.03, friction=0.9;
+ vx+=moveX*0.03;
+ vz+=moveZ*0.03;
 
- velocityX+=moveX*accel;
- velocityZ+=moveZ*accel;
+ vx*=0.9;
+ vz*=0.9;
 
- velocityX*=friction;
- velocityZ*=friction;
+ let nx=player.position.x;
+ let nz=player.position.z;
 
- let newX=player.position.x;
- let newZ=player.position.z;
+ nx+=Math.sin(angleY)*vz;
+ nz+=Math.cos(angleY)*vz;
 
- newX+=Math.sin(angleY)*velocityZ;
- newZ+=Math.cos(angleY)*velocityZ;
+ nx+=Math.sin(angleY+Math.PI/2)*vx;
+ nz+=Math.cos(angleY+Math.PI/2)*vx;
 
- newX+=Math.sin(angleY+Math.PI/2)*velocityX;
- newZ+=Math.cos(angleY+Math.PI/2)*velocityX;
-
- if(!checkCollision(newX,newZ)){
-  player.position.x=newX;
-  player.position.z=newZ;
+ if(!checkCollision(nx,nz)){
+  player.position.x=nx;
+  player.position.z=nz;
  }
 
- let speed=Math.abs(velocityX)+Math.abs(velocityZ);
+ let speed=Math.abs(vx)+Math.abs(vz);
  let t=Date.now()*0.01;
 
  if(speed>0.01){
-  armL.rotation.x=Math.sin(t)*0.8;
-  armR.rotation.x=-Math.sin(t)*0.8;
-  legL.rotation.x=-Math.sin(t)*0.8;
-  legR.rotation.x=Math.sin(t)*0.8;
- }else{
-  body.position.y=0.9+Math.sin(t)*0.02;
+  armL.rotation.x=Math.sin(t);
+  armR.rotation.x=-Math.sin(t);
+  legL.rotation.x=-Math.sin(t);
+  legR.rotation.x=Math.sin(t);
  }
 
  // camera
- const d=10;
+ let d=10;
  camera.position.set(
   player.position.x+Math.sin(angleY)*d*Math.cos(angleX),
   player.position.y+5+Math.sin(angleX)*5,
   player.position.z+Math.cos(angleY)*d*Math.cos(angleX)
  );
- camera.lookAt(player.position);
 
+ camera.lookAt(player.position);
  renderer.render(scene,camera);
 }
+
 animate();
 
 </script>
