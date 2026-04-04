@@ -16,7 +16,6 @@ body{margin:0;overflow:hidden;background:black}
  height:120px;
  background:rgba(0,0,0,0.3);
  border-radius:50%;
- touch-action:none;
 }
 
 #stick{
@@ -48,7 +47,6 @@ scene.background = new THREE.Color(0x87ceeb);
 // ===== CAMERA =====
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
 
-// góc nhìn
 let angleX = 0;
 let angleY = 0;
 
@@ -92,12 +90,63 @@ createTree(5,5);
 createTree(-5,5);
 createTree(0,-5);
 
-// ===== PLAYER =====
-const player = new THREE.Mesh(
+// ===== PLAYER (Mew dạng người) =====
+const player = new THREE.Group();
+
+// body
+const body = new THREE.Mesh(
  new THREE.SphereGeometry(1,32,32),
  new THREE.MeshStandardMaterial({color:0xff99cc})
 );
-player.position.y = 1;
+body.position.y = 1;
+player.add(body);
+
+// head
+const head = new THREE.Mesh(
+ new THREE.SphereGeometry(0.7,32,32),
+ new THREE.MeshStandardMaterial({color:0xff99cc})
+);
+head.position.y = 2.3;
+player.add(head);
+
+// eyes
+const eye1 = new THREE.Mesh(
+ new THREE.SphereGeometry(0.1),
+ new THREE.MeshStandardMaterial({color:0x0000ff})
+);
+eye1.position.set(0.2,2.3,0.6);
+
+const eye2 = eye1.clone();
+eye2.position.x = -0.2;
+
+player.add(eye1, eye2);
+
+// arms
+const armL = new THREE.Mesh(
+ new THREE.CylinderGeometry(0.15,0.15,1),
+ new THREE.MeshStandardMaterial({color:0xff99cc})
+);
+armL.position.set(-1.2,1.2,0);
+armL.rotation.z = Math.PI/4;
+
+const armR = armL.clone();
+armR.position.x = 1.2;
+armR.rotation.z = -Math.PI/4;
+
+player.add(armL, armR);
+
+// legs
+const legL = new THREE.Mesh(
+ new THREE.CylinderGeometry(0.2,0.2,1),
+ new THREE.MeshStandardMaterial({color:0xff99cc})
+);
+legL.position.set(-0.4,0.3,0);
+
+const legR = legL.clone();
+legR.position.x = 0.4;
+
+player.add(legL, legR);
+
 scene.add(player);
 
 // ===== JOYSTICK =====
@@ -165,7 +214,7 @@ window.addEventListener("touchmove", e=>{
  let dy = touch.clientY - lastY;
 
  angleY -= dx * 0.005;
- angleX += dy * 0.005; // ✅ đã sửa đúng
+ angleX += dy * 0.005;
 
  angleX = Math.max(-1.2, Math.min(1.2, angleX));
 
@@ -175,7 +224,7 @@ window.addEventListener("touchmove", e=>{
 
 window.addEventListener("touchend", ()=> isLook = false);
 
-// ===== MOVEMENT (MƯỢT + NHANH) =====
+// ===== MOVEMENT =====
 let velocityX = 0;
 let velocityZ = 0;
 
@@ -183,7 +232,7 @@ let velocityZ = 0;
 function animate(){
  requestAnimationFrame(animate);
 
- const accel = 0.03;   // tăng tốc nhanh hơn
+ const accel = 0.03;
  const friction = 0.9;
 
  velocityX += moveX * accel;
@@ -198,7 +247,16 @@ function animate(){
  player.position.x += Math.sin(angleY + Math.PI/2) * velocityX;
  player.position.z += Math.cos(angleY + Math.PI/2) * velocityX;
 
- // ===== CAMERA =====
+ // animation tay chân
+ let time = Date.now() * 0.005;
+
+ armL.rotation.x = Math.sin(time) * 0.5;
+ armR.rotation.x = -Math.sin(time) * 0.5;
+
+ legL.rotation.x = -Math.sin(time) * 0.5;
+ legR.rotation.x = Math.sin(time) * 0.5;
+
+ // camera
  const distance = 10;
 
  const camX = player.position.x + Math.sin(angleY) * distance * Math.cos(angleX);
@@ -213,7 +271,7 @@ function animate(){
 
 animate();
 
-// ===== RESIZE =====
+// resize
 window.addEventListener("resize",()=>{
  camera.aspect = innerWidth/innerHeight;
  camera.updateProjectionMatrix();
