@@ -2,107 +2,93 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Game 3D OK</title>
+<title>Mew Debug</title>
 <style>
 body{margin:0;overflow:hidden}
+#debug{
+position:fixed;
+top:10px;
+left:10px;
+color:white;
+background:black;
+padding:5px;
+font-size:14px;
+}
 </style>
 </head>
 <body>
 
+<div id="debug">Đang khởi động...</div>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.152/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
+
+const debug = document.getElementById("debug");
+
+// ===== TEST THREE =====
+if(typeof THREE === "undefined"){
+  debug.innerHTML = "❌ LỖI: Không load được THREE";
+}
 
 // ===== SCENE =====
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
 // ===== CAMERA =====
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
 camera.position.set(0,5,10);
 
 // ===== RENDER =====
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // ===== LIGHT =====
 scene.add(new THREE.AmbientLight(0xffffff,1));
 
-// ===== GROUND =====
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(100,100),
-  new THREE.MeshBasicMaterial({color:0x3cb043})
+// ===== TEST OBJECT (CHỐNG TRẮNG) =====
+const testCube = new THREE.Mesh(
+  new THREE.BoxGeometry(),
+  new THREE.MeshBasicMaterial({color:0xff0000})
 );
-ground.rotation.x = -Math.PI/2;
-scene.add(ground);
+scene.add(testCube);
 
-// ===== PLAYER (KHÔNG LỖI) =====
-const player = new THREE.Mesh(
-  new THREE.BoxGeometry(1,2,1),
-  new THREE.MeshBasicMaterial({color:0x0000ff})
+// ===== LOAD MEW =====
+let player;
+const loader = new THREE.GLTFLoader();
+
+loader.load(
+  "https://truongducphat092007-lang.github.io/Game/mew.glb",
+
+  function(gltf){
+    player = gltf.scene;
+    player.scale.set(5,5,5);
+    scene.add(player);
+
+    debug.innerHTML = "✅ Mew load OK";
+  },
+
+  function(xhr){
+    debug.innerHTML = "Đang load: " + Math.round(xhr.loaded/xhr.total*100) + "%";
+  },
+
+  function(error){
+    debug.innerHTML = "❌ Lỗi load Mew";
+    console.error(error);
+  }
 );
-player.position.y = 1;
-scene.add(player);
-
-// ===== TREE =====
-function createTree(x,z){
-  const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.3,0.3,2),
-    new THREE.MeshBasicMaterial({color:0x8B4513})
-  );
-  trunk.position.set(x,1,z);
-
-  const leaves = new THREE.Mesh(
-    new THREE.SphereGeometry(1),
-    new THREE.MeshBasicMaterial({color:0x228B22})
-  );
-  leaves.position.set(x,2.5,z);
-
-  scene.add(trunk, leaves);
-}
-
-// tạo nhiều cây
-for(let i=0;i<10;i++){
-  createTree(Math.random()*50-25, Math.random()*50-25);
-}
-
-// ===== CONTROL =====
-const keys = {};
-
-window.addEventListener("keydown", e=> keys[e.key]=true);
-window.addEventListener("keyup", e=> keys[e.key]=false);
 
 // ===== LOOP =====
 function animate(){
   requestAnimationFrame(animate);
 
-  // di chuyển
-  if(keys["w"]) player.position.z -=0.2;
-  if(keys["s"]) player.position.z +=0.2;
-  if(keys["a"]) player.position.x -=0.2;
-  if(keys["d"]) player.position.x +=0.2;
-
-  // camera theo
-  camera.position.set(
-    player.position.x,
-    player.position.y + 5,
-    player.position.z + 10
-  );
-
-  camera.lookAt(player.position);
+  testCube.rotation.y += 0.01;
 
   renderer.render(scene,camera);
 }
-
 animate();
-
-// ===== FIX RESIZE =====
-window.addEventListener("resize", ()=>{
-  camera.aspect = window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
 
 </script>
 
