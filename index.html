@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mew Fix</title>
+<title>Mew Final Fix</title>
 <style>
 body{margin:0;overflow:hidden}
 #debug{
@@ -19,12 +19,10 @@ padding:5px;
 
 <div id="debug">Đang khởi động...</div>
 
-<!-- THREE -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.152/build/three.min.js"></script>
-
-<!-- FIX QUAN TRỌNG -->
 <script type="module">
 
+// IMPORT CHUẨN
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.152/build/three.module.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.152/examples/jsm/loaders/GLTFLoader.js";
 
 const debug = document.getElementById("debug");
@@ -62,14 +60,16 @@ loader.load(
   (gltf)=>{
     player = gltf.scene;
     player.scale.set(3,3,3);
+    player.position.y = 1;
     scene.add(player);
-    debug.innerHTML = "✅ Mew OK";
+
+    debug.innerHTML = "✅ Mew load OK";
   },
 
   undefined,
 
   (err)=>{
-    debug.innerHTML = "❌ Lỗi load Mew";
+    debug.innerHTML = "❌ Không load được Mew";
     console.log(err);
   }
 );
